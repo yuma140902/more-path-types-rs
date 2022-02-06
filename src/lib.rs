@@ -1,3 +1,5 @@
+// TODO: test
+// TODO: document
 use std::marker::PhantomData;
 
 use path_absolutize::Absolutize;
@@ -31,6 +33,7 @@ impl<RA, T> AsRef<StdPath> for Path<RA, T> {
 #[derive(Debug)]
 pub enum Error {
     IO { io_error: std::io::Error },
+    PathDiff,
 }
 
 impl<T> Path<Absolute, T> {
@@ -43,6 +46,7 @@ impl<T> Path<Absolute, T> {
                 _phantom_t: PhantomData {},
             });
         }
+
         let abs_path = path
             .absolutize()
             .map_err(|io_error| Error::IO { io_error })?;
@@ -66,12 +70,42 @@ impl<T> Path<Absolute, T> {
                 _phantom_t: PhantomData {},
             });
         }
+
         let abs_path = path
             .absolutize_virtually(working_dir)
             .map_err(|io_error| Error::IO { io_error })?;
         debug_assert!(abs_path.is_absolute());
         Ok(Self {
             inner: abs_path.to_path_buf(),
+            _phantom_ra: PhantomData {},
+            _phantom_t: PhantomData {},
+        })
+    }
+}
+
+impl<T> Path<Relative, T> {
+    pub fn new(path: impl AsRef<StdPath>) -> Result<Self, Error> {
+        let working_dir = std::env::current_dir().map_err(|io_error| Error::IO { io_error })?;
+        Self::with_virtual_working_dir(&path, &working_dir)
+    }
+
+    pub fn with_virtual_working_dir(
+        path: impl AsRef<StdPath>,
+        working_dir: impl AsRef<StdPath>,
+    ) -> Result<Self, Error> {
+        let path = path.as_ref();
+        if path.is_relative() {
+            return Ok(Self {
+                inner: path.to_path_buf(),
+                _phantom_ra: PhantomData {},
+                _phantom_t: PhantomData {},
+            });
+        }
+
+        let rel_path = pathdiff::diff_paths(&path, &working_dir).ok_or_else(|| Error::PathDiff)?;
+        debug_assert!(rel_path.is_relative());
+        Ok(Self {
+            inner: rel_path,
             _phantom_ra: PhantomData {},
             _phantom_t: PhantomData {},
         })
