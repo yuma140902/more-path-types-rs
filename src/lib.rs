@@ -34,6 +34,7 @@ impl<RA, T> AsRef<StdPath> for Path<RA, T> {
 pub enum Error {
     IO { io_error: std::io::Error },
     PathDiff,
+    NotFile,
 }
 
 impl<T> Path<Absolute, T> {
@@ -109,6 +110,21 @@ impl<T> Path<Relative, T> {
             _phantom_ra: PhantomData {},
             _phantom_t: PhantomData {},
         })
+    }
+}
+
+impl Path<Both, File> {
+    pub fn new(path: impl AsRef<StdPath>) -> Result<Self, Error> {
+        let path = path.as_ref();
+        if path.is_file() {
+            Ok(Self {
+                inner: path.to_path_buf(),
+                _phantom_ra: PhantomData {},
+                _phantom_t: PhantomData {},
+            })
+        } else {
+            Err(Error::NotFile)
+        }
     }
 }
 
