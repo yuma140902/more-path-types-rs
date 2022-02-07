@@ -58,6 +58,11 @@ pub enum ExistingPathError {
     NotExist,
 }
 
+#[derive(Debug, PartialEq)]
+pub enum NotExistingPathError {
+    Exists,
+}
+
 impl<T> Path<Absolute, T> {
     pub fn new(path: impl AsRef<StdPath>) -> Result<Self, AbsolutePathError> {
         let path = path.as_ref();
@@ -195,6 +200,21 @@ impl Path<Both, Exist> {
             })
         } else {
             Err(ExistingPathError::NotExist)
+        }
+    }
+}
+
+impl Path<Both, NotExist> {
+    pub fn new(path: impl AsRef<StdPath>) -> Result<Self, NotExistingPathError> {
+        let path = path.as_ref();
+        if !path.exists() {
+            Ok(Self {
+                inner: path.to_path_buf(),
+                _phantom_ra: PhantomData {},
+                _phantom_t: PhantomData {},
+            })
+        } else {
+            Err(NotExistingPathError::Exists)
         }
     }
 }
