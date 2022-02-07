@@ -35,6 +35,7 @@ pub enum Error {
     IO { io_error: std::io::Error },
     PathDiff,
     NotFile,
+    NotDirectory,
 }
 
 impl<T> Path<Absolute, T> {
@@ -124,6 +125,21 @@ impl Path<Both, File> {
             })
         } else {
             Err(Error::NotFile)
+        }
+    }
+}
+
+impl Path<Both, Directory> {
+    pub fn new(path: impl AsRef<StdPath>) -> Result<Self, Error> {
+        let path = path.as_ref();
+        if path.is_dir() {
+            Ok(Self {
+                inner: path.to_path_buf(),
+                _phantom_ra: PhantomData {},
+                _phantom_t: PhantomData {},
+            })
+        } else {
+            Err(Error::NotDirectory)
         }
     }
 }
