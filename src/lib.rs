@@ -63,7 +63,7 @@ pub enum NotExistingPathError {
     Exists,
 }
 
-impl<T> Path<Absolute, T> {
+impl Path<Absolute, Any> {
     pub fn new(path: impl AsRef<StdPath>) -> Result<Self, AbsolutePathError> {
         let path = path.as_ref();
         if path.is_absolute() {
@@ -110,7 +110,7 @@ impl<T> Path<Absolute, T> {
     }
 }
 
-impl<T> Path<Relative, T> {
+impl Path<Relative, Any> {
     pub fn new(path: impl AsRef<StdPath>) -> Result<Self, RelativePathError> {
         let working_dir = std::env::current_dir()
             .map_err(|io_error| RelativePathError::NoWorkingDirectory { io_error })?;
