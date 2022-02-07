@@ -16,7 +16,6 @@ pub struct Path<RA, T> {
 
 pub struct Absolute;
 pub struct Relative;
-pub struct Both;
 
 pub struct File;
 pub struct Directory;
@@ -141,7 +140,7 @@ impl Path<Relative, Any> {
     }
 }
 
-impl Path<Both, File> {
+impl Path<Any, File> {
     pub fn new(path: impl AsRef<StdPath>) -> Result<Self, FilePathError> {
         let path = path.as_ref();
         let path = if path.is_symlink() {
@@ -165,7 +164,7 @@ impl Path<Both, File> {
     }
 }
 
-impl Path<Both, Directory> {
+impl Path<Any, Directory> {
     pub fn new(path: impl AsRef<StdPath>) -> Result<Self, DirectoryPathError> {
         let path = path.as_ref();
         let path = if path.is_symlink() {
@@ -189,7 +188,7 @@ impl Path<Both, Directory> {
     }
 }
 
-impl Path<Both, Exist> {
+impl Path<Any, Exist> {
     pub fn new(path: impl AsRef<StdPath>) -> Result<Self, ExistingPathError> {
         let path = path.as_ref();
         if path.exists() {
@@ -204,7 +203,7 @@ impl Path<Both, Exist> {
     }
 }
 
-impl Path<Both, NotExist> {
+impl Path<Any, NotExist> {
     pub fn new(path: impl AsRef<StdPath>) -> Result<Self, NotExistingPathError> {
         let path = path.as_ref();
         if !path.exists() {
@@ -219,7 +218,7 @@ impl Path<Both, NotExist> {
     }
 }
 
-impl Path<Both, Any> {
+impl Path<Any, Any> {
     pub fn new(path: impl AsRef<StdPath>) -> Self {
         Self {
             inner: path.as_ref().to_path_buf(),
