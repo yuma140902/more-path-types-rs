@@ -43,11 +43,13 @@ pub enum RelativePathError {
 
 #[derive(Debug)]
 pub enum FilePathError {
+    ReadLink { io_error: std::io::Error },
     NotFile,
 }
 
 #[derive(Debug)]
 pub enum DirectoryPathError {
+    ReadLink { io_error: std::io::Error },
     NotDirectory,
 }
 
@@ -132,9 +134,18 @@ impl<T> Path<Relative, T> {
 impl Path<Both, File> {
     pub fn new(path: impl AsRef<StdPath>) -> Result<Self, FilePathError> {
         let path = path.as_ref();
+        let path = if path.is_symlink() {
+            match path.read_link() {
+                Ok(p) => p,
+                Err(io_error) => return Err(FilePathError::ReadLink { io_error }),
+            }
+        } else {
+            path.to_path_buf()
+        };
+
         if path.is_file() {
             Ok(Self {
-                inner: path.to_path_buf(),
+                inner: path,
                 _phantom_ra: PhantomData {},
                 _phantom_t: PhantomData {},
             })
@@ -147,9 +158,18 @@ impl Path<Both, File> {
 impl Path<Both, Directory> {
     pub fn new(path: impl AsRef<StdPath>) -> Result<Self, DirectoryPathError> {
         let path = path.as_ref();
+        let path = if path.is_symlink() {
+            match path.read_link() {
+                Ok(p) => p,
+                Err(io_error) => return Err(DirectoryPathError::ReadLink { io_error }),
+            }
+        } else {
+            path.to_path_buf()
+        };
+
         if path.is_dir() {
             Ok(Self {
-                inner: path.to_path_buf(),
+                inner: path,
                 _phantom_ra: PhantomData {},
                 _phantom_t: PhantomData {},
             })
