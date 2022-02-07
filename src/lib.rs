@@ -53,6 +53,11 @@ pub enum DirectoryPathError {
     NotDirectory,
 }
 
+#[derive(Debug, PartialEq)]
+pub enum ExistingPathError {
+    NotExist,
+}
+
 impl<T> Path<Absolute, T> {
     pub fn new(path: impl AsRef<StdPath>) -> Result<Self, AbsolutePathError> {
         let path = path.as_ref();
@@ -175,6 +180,21 @@ impl Path<Both, Directory> {
             })
         } else {
             Err(DirectoryPathError::NotDirectory)
+        }
+    }
+}
+
+impl Path<Both, Exist> {
+    pub fn new(path: impl AsRef<StdPath>) -> Result<Self, ExistingPathError> {
+        let path = path.as_ref();
+        if path.exists() {
+            Ok(Self {
+                inner: path.to_path_buf(),
+                _phantom_ra: PhantomData {},
+                _phantom_t: PhantomData {},
+            })
+        } else {
+            Err(ExistingPathError::NotExist)
         }
     }
 }
