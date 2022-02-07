@@ -31,15 +31,28 @@ impl<RA, T> AsRef<StdPath> for Path<RA, T> {
 }
 
 #[derive(Debug)]
-pub enum Error {
-    IO { io_error: std::io::Error },
+pub enum AbsolutePathError {
+    Absolutize { io_error: std::io::Error },
+}
+
+#[derive(Debug)]
+pub enum RelativePathError {
+    NoWorkingDirectory { io_error: std::io::Error },
     PathDiff,
+}
+
+#[derive(Debug)]
+pub enum FilePathError {
     NotFile,
+}
+
+#[derive(Debug)]
+pub enum DirectoryPathError {
     NotDirectory,
 }
 
 impl<T> Path<Absolute, T> {
-    pub fn new(path: impl AsRef<StdPath>) -> Result<Self, Error> {
+    pub fn new(path: impl AsRef<StdPath>) -> Result<Self, AbsolutePathError> {
         let path = path.as_ref();
         if path.is_absolute() {
             return Ok(Self {
@@ -51,7 +64,7 @@ impl<T> Path<Absolute, T> {
 
         let abs_path = path
             .absolutize()
-            .map_err(|io_error| Error::IO { io_error })?;
+            .map_err(|io_error| AbsolutePathError::Absolutize { io_error })?;
         debug_assert!(abs_path.is_absolute());
         Ok(Self {
             inner: abs_path.to_path_buf(),
@@ -63,7 +76,7 @@ impl<T> Path<Absolute, T> {
     pub fn with_virtual_working_dir(
         path: impl AsRef<StdPath>,
         working_dir: impl AsRef<StdPath>,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, AbsolutePathError> {
         let path = path.as_ref();
         if path.is_absolute() {
             return Ok(Self {
@@ -75,7 +88,7 @@ impl<T> Path<Absolute, T> {
 
         let abs_path = path
             .absolutize_virtually(working_dir)
-            .map_err(|io_error| Error::IO { io_error })?;
+            .map_err(|io_error| AbsolutePathError::Absolutize { io_error })?;
         debug_assert!(abs_path.is_absolute());
         Ok(Self {
             inner: abs_path.to_path_buf(),
@@ -86,15 +99,16 @@ impl<T> Path<Absolute, T> {
 }
 
 impl<T> Path<Relative, T> {
-    pub fn new(path: impl AsRef<StdPath>) -> Result<Self, Error> {
-        let working_dir = std::env::current_dir().map_err(|io_error| Error::IO { io_error })?;
+    pub fn new(path: impl AsRef<StdPath>) -> Result<Self, RelativePathError> {
+        let working_dir = std::env::current_dir()
+            .map_err(|io_error| RelativePathError::NoWorkingDirectory { io_error })?;
         Self::with_virtual_working_dir(&path, &working_dir)
     }
 
     pub fn with_virtual_working_dir(
         path: impl AsRef<StdPath>,
         working_dir: impl AsRef<StdPath>,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, RelativePathError> {
         let path = path.as_ref();
         if path.is_relative() {
             return Ok(Self {
@@ -104,7 +118,8 @@ impl<T> Path<Relative, T> {
             });
         }
 
-        let rel_path = pathdiff::diff_paths(&path, &working_dir).ok_or_else(|| Error::PathDiff)?;
+        let rel_path =
+            pathdiff::diff_paths(&path, &working_dir).ok_or_else(|| RelativePathError::PathDiff)?;
         debug_assert!(rel_path.is_relative());
         Ok(Self {
             inner: rel_path,
@@ -115,7 +130,7 @@ impl<T> Path<Relative, T> {
 }
 
 impl Path<Both, File> {
-    pub fn new(path: impl AsRef<StdPath>) -> Result<Self, Error> {
+    pub fn new(path: impl AsRef<StdPath>) -> Result<Self, FilePathError> {
         let path = path.as_ref();
         if path.is_file() {
             Ok(Self {
@@ -124,13 +139,13 @@ impl Path<Both, File> {
                 _phantom_t: PhantomData {},
             })
         } else {
-            Err(Error::NotFile)
+            Err(FilePathError::NotFile)
         }
     }
 }
 
 impl Path<Both, Directory> {
-    pub fn new(path: impl AsRef<StdPath>) -> Result<Self, Error> {
+    pub fn new(path: impl AsRef<StdPath>) -> Result<Self, DirectoryPathError> {
         let path = path.as_ref();
         if path.is_dir() {
             Ok(Self {
@@ -139,7 +154,7 @@ impl Path<Both, Directory> {
                 _phantom_t: PhantomData {},
             })
         } else {
-            Err(Error::NotDirectory)
+            Err(DirectoryPathError::NotDirectory)
         }
     }
 }
