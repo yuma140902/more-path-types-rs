@@ -219,6 +219,16 @@ impl Path<Both, NotExist> {
     }
 }
 
+impl Path<Both, Any> {
+    pub fn new(path: impl AsRef<StdPath>) -> Self {
+        Self {
+            inner: path.as_ref().to_path_buf(),
+            _phantom_ra: PhantomData {},
+            _phantom_t: PhantomData {},
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
