@@ -125,7 +125,7 @@ impl Path<Relative, Any> {
     ) -> Result<Self, RelativePathError> {
         let path = path.as_ref();
         let path = if path.is_relative() {
-            path.absolutize_from(working_dir.as_ref())
+            path.absolutize()
                 .map_err(|io_error| RelativePathError::Absolutize { io_error })?
         } else {
             Cow::Borrowed(path)
