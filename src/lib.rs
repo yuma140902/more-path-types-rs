@@ -1,5 +1,6 @@
 // TODO: test
 // TODO: document
+use std::borrow::Borrow;
 use std::marker::PhantomData;
 
 use path_absolutize::Absolutize;
@@ -98,7 +99,7 @@ impl Path<Absolute, Any> {
         }
 
         let abs_path = path
-            .absolutize_virtually(working_dir)
+            .absolutize_from(working_dir.borrow().as_ref())
             .map_err(|io_error| AbsolutePathError::Absolutize { io_error })?;
         debug_assert!(abs_path.is_absolute());
         Ok(Self {
