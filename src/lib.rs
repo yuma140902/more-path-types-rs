@@ -1,6 +1,7 @@
 // TODO: test
 // TODO: document
 use std::borrow::Borrow;
+use std::borrow::Cow;
 use std::marker::PhantomData;
 
 use path_absolutize::Absolutize;
@@ -39,6 +40,7 @@ pub enum AbsolutePathError {
 pub enum RelativePathError {
     NoWorkingDirectory { io_error: std::io::Error },
     PathDiff,
+    Absolutize { io_error: std::io::Error },
 }
 
 #[derive(Debug)]
@@ -122,13 +124,12 @@ impl Path<Relative, Any> {
         working_dir: impl AsRef<StdPath>,
     ) -> Result<Self, RelativePathError> {
         let path = path.as_ref();
-        if path.is_relative() {
-            return Ok(Self {
-                inner: path.to_path_buf(),
-                _phantom_ra: PhantomData {},
-                _phantom_t: PhantomData {},
-            });
-        }
+        let path = if path.is_relative() {
+            path.absolutize_from(working_dir.as_ref())
+                .map_err(|io_error| RelativePathError::Absolutize { io_error })?
+        } else {
+            Cow::Borrowed(path)
+        };
 
         let rel_path =
             pathdiff::diff_paths(&path, &working_dir).ok_or_else(|| RelativePathError::PathDiff)?;
